@@ -19,39 +19,24 @@ class MyHomePage extends StatefulWidget {
 }
 
 class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin {
-  static const numCols = 10;
-  static const numRows = 20;
+  static const numCols = 15;
+  static const numRows = 30;
   static final Random rng = Random();
-  static final TextStyle visible = makeStyle(true);
-  static final TextStyle invisible = makeStyle(false);
+
+  static final TextStyle style = TextStyle(
+    fontSize: 8,
+    color: Colors.black,
+    decoration: TextDecoration.none,
+  );
+
   static final Widget goodWidget = makeWidget(true);
   static final Widget badWidget = makeWidget(false);
-
-  static TextStyle makeStyle(bool isVisible) {
-    return TextStyle(
-      fontSize: 8,
-      color: isVisible ? Colors.black : Colors.transparent,
-      decoration: TextDecoration.none,
-    );
-  }
 
   static Widget makeWidget(bool isGood) {
     return Container(
       padding: EdgeInsets.all(2),
       color: isGood ? Colors.green : Colors.red,
-      child: isGood ? Stack(
-        alignment: Alignment.center,
-        children: [
-          Text('good', style: visible),
-          Text('bad', style: invisible),
-        ],
-      ) : Stack(
-        alignment: Alignment.center,
-        children: [
-          Text('good', style: invisible),
-          Text('bad', style: visible),
-        ],
-      ),
+      child: Text(isGood ? 'grn' : 'red', style: style),
     );
   }
 
@@ -59,7 +44,7 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
   List<List<bool>> _grid;
 
   MyHomePageState() {
-    _grid = List<List<bool>>.generate(numRows, (i) => List<bool>.generate(numCols, (i) => rng.nextBool()));
+    _grid = List<List<bool>>.generate(numCols, (i) => List<bool>.generate(numRows, (i) => rng.nextBool()));
   }
 
   @override
@@ -78,7 +63,7 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
   void flipOne() {
     int row = rng.nextInt(numRows);
     int col = rng.nextInt(numCols);
-    _grid[row][col] = !_grid[row][col];
+    _grid[col][row] = !_grid[col][row];
   }
 
   @override
@@ -87,14 +72,14 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
       animation: _controller,
       builder: (BuildContext c, Widget w) {
         flipOne();
-        return Column(
+        return Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            for (var row in _grid)
-              Row(
+            for (var col in _grid)
+              Column(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  for (var isGood in row)
+                  for (var isGood in col)
                     isGood ? goodWidget : badWidget,
                 ]
               ),
