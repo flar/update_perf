@@ -8,14 +8,16 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Update Performance Demo',
-      home: MyHomePage(),
+      home: Scaffold(
+        body: MyHomePage(),
+        backgroundColor: Colors.white,
+      ),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  @override
-  State createState() => MyHomePageState();
+  @override State createState() => MyHomePageState();
 }
 
 class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin {
@@ -23,28 +25,34 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
   static const numRows = 30;
   static final Random rng = Random();
 
-  static final TextStyle style = TextStyle(
-    fontSize: 8,
-    color: Colors.black,
-    decoration: TextDecoration.none,
-  );
+  static TextStyle makeStyle(Color color) =>
+      TextStyle(
+        fontSize: 8,
+        color: color,
+        decoration: TextDecoration.none,
+      );
 
-  static final Widget goodWidget = makeWidget(true);
-  static final Widget badWidget = makeWidget(false);
+  static Widget makeWidget(Color bgColor, TextStyle gStyle, TextStyle rStyle) =>
+      Container(
+        padding: EdgeInsets.all(2),
+        color: bgColor,
+        child: Row(children: [ Text('g', style: gStyle), Text('b', style: rStyle)]),
+      );
 
-  static Widget makeWidget(bool isGood) {
-    return Container(
-      padding: EdgeInsets.all(2),
-      color: isGood ? Colors.green : Colors.red,
-      child: Text(isGood ? 'grn' : 'red', style: style),
-    );
-  }
+  static final TextStyle redStyle   = makeStyle(Colors.red);
+  static final TextStyle greenStyle = makeStyle(Colors.green);
+  static final TextStyle blackStyle = makeStyle(Colors.black);
+  static final TextStyle greyStyle  = makeStyle(Colors.grey);
+
+  static final Widget noWidget   = makeWidget(Colors.grey,  greyStyle,  greyStyle);
+  static final Widget goodWidget = makeWidget(Colors.green, blackStyle, greenStyle);
+  static final Widget badWidget  = makeWidget(Colors.red,   redStyle,   blackStyle);
 
   AnimationController _controller;
   List<List<bool>> _grid;
 
   MyHomePageState() {
-    _grid = List<List<bool>>.generate(numCols, (i) => List<bool>.generate(numRows, (i) => rng.nextBool()));
+    _grid = List<List<bool>>.generate(numCols, (i) => List<bool>.filled(numRows, null));
   }
 
   @override
@@ -63,6 +71,7 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
   void flipOne() {
     int row = rng.nextInt(numRows);
     int col = rng.nextInt(numCols);
+    _grid[col][row] ??= rng.nextBool();
     _grid[col][row] = !_grid[col][row];
   }
 
@@ -80,8 +89,8 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   for (var isGood in col)
-                    isGood ? goodWidget : badWidget,
-                ]
+                    isGood == null ? noWidget : (isGood ? goodWidget : badWidget),
+                ],
               ),
           ],
         );
