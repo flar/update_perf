@@ -1,30 +1,19 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 
-void main() => runApp(MyApp());
-
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Update Performance Demo',
-      home: Scaffold(
-        body: MyHomePage(),
-        backgroundColor: Colors.white,
-      ),
-    );
-  }
-}
+void main() => runApp(MyHomePage());
 
 class MyHomePage extends StatefulWidget {
   @override State createState() => MyHomePageState();
 }
 
-class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin {
-  static const numCols = 15;
-  static const numRows = 30;
+class MyHomePageState extends State<MyHomePage>
+    with SingleTickerProviderStateMixin
+{
+  static const int numCols = 15;
+  static const int numRows = 30;
   static final Random rng = Random();
-  static const useRepaintBoundary = false;
+  bool useRepaintBoundary = true;
 
   static TextStyle makeStyle(Color color) =>
       TextStyle(
@@ -38,17 +27,20 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
   static final TextStyle blackStyle = makeStyle(Colors.black);
   static final TextStyle greyStyle  = makeStyle(Colors.grey);
 
-  static Widget makeWidget(Color bgColor, TextStyle gStyle, TextStyle rStyle) {
+  Widget makeWidget(Color bgColor, TextStyle gStyle, TextStyle rStyle) {
     Widget w = Container(
       padding: EdgeInsets.all(2),
       color: bgColor,
-      child: Row(children: [ Text('g', style: gStyle), Text('b', style: rStyle)]),
+      child: Row(children: [
+        Text('g', style: gStyle),
+        Text('b', style: rStyle),
+      ]),
     );
     if (useRepaintBoundary) w = RepaintBoundary(child: w);
     return w;
   }
 
-  static Widget cellForState(bool state) {
+  Widget cellForState(bool state) {
     if (state == null) {
       return makeWidget(Colors.grey,  greyStyle,  greyStyle);
     } else if (state) {
@@ -63,15 +55,33 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
   List<List<Widget>> _widgetGrid;
 
   MyHomePageState() {
-    _stateGrid = List<List<bool>>.generate(numCols, (i) => List<bool>.filled(numRows, null));
+    resetGrid();
+  }
+
+  void resetGrid() {
+    _stateGrid = List<List<bool>>.generate(numCols,
+            (i) => List<bool>.filled(numRows, null));
+    setRepaintBoundaries(useRepaintBoundary);
+  }
+
+  void setRepaintBoundaries(bool useRB) {
+    useRepaintBoundary = useRB;
     final Widget empty = cellForState(null);
-    _widgetGrid = List<List<Widget>>.generate(numCols, (i) => List<Widget>.filled(numRows, empty));
+    _widgetGrid = List<List<Widget>>.generate(numCols, (col) => [
+      for (int row = 0; row < numRows; row++)
+        _stateGrid[col][row] == null
+            ? empty
+            : cellForState(_stateGrid[col][row]),
+    ]);
   }
 
   @override
   void initState() {
     super.initState();
-    _controller = new AnimationController(vsync: this, duration: Duration(seconds: 1));
+    _controller = new AnimationController(
+      vsync: this,
+      duration: Duration(seconds: 1),
+    );
     _controller.repeat();
   }
 
@@ -91,21 +101,43 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (BuildContext c, Widget w) {
-        flipOne();
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            for (var col in _widgetGrid)
-              Column(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: col,
+    return MaterialApp(
+      title: 'Update Performance Demo',
+      home: Scaffold(
+        backgroundColor: Colors.white,
+        body: AnimatedBuilder(
+          animation: _controller,
+          builder: (BuildContext c, Widget w) {
+            flipOne();
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                for (var col in _widgetGrid)
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: col,
+                  ),
+              ],
+            );
+          },
+        ),
+        bottomNavigationBar: BottomAppBar(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('RepaintBoundaries:'),
+              Checkbox(
+                value: useRepaintBoundary,
+                onChanged: (v) => setState(() => setRepaintBoundaries(v)),
               ),
-          ],
-        );
-      },
+              RaisedButton(
+                child: Text('Reset'),
+                onPressed: () => setState(() => resetGrid()),
+              ),
+            ]
+          ),
+        ),
+      ),
     );
   }
 }
