@@ -24,6 +24,7 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
   static const numCols = 15;
   static const numRows = 30;
   static final Random rng = Random();
+  static const useRepaintBoundary = false;
 
   static TextStyle makeStyle(Color color) =>
       TextStyle(
@@ -32,27 +33,39 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
         decoration: TextDecoration.none,
       );
 
-  static Widget makeWidget(Color bgColor, TextStyle gStyle, TextStyle rStyle) =>
-      Container(
-        padding: EdgeInsets.all(2),
-        color: bgColor,
-        child: Row(children: [ Text('g', style: gStyle), Text('b', style: rStyle)]),
-      );
-
   static final TextStyle redStyle   = makeStyle(Colors.red);
   static final TextStyle greenStyle = makeStyle(Colors.green);
   static final TextStyle blackStyle = makeStyle(Colors.black);
   static final TextStyle greyStyle  = makeStyle(Colors.grey);
 
-  static final Widget noWidget   = makeWidget(Colors.grey,  greyStyle,  greyStyle);
-  static final Widget goodWidget = makeWidget(Colors.green, blackStyle, greenStyle);
-  static final Widget badWidget  = makeWidget(Colors.red,   redStyle,   blackStyle);
+  static Widget makeWidget(Color bgColor, TextStyle gStyle, TextStyle rStyle) {
+    Widget w = Container(
+      padding: EdgeInsets.all(2),
+      color: bgColor,
+      child: Row(children: [ Text('g', style: gStyle), Text('b', style: rStyle)]),
+    );
+    if (useRepaintBoundary) w = RepaintBoundary(child: w);
+    return w;
+  }
+
+  static Widget cellForState(bool state) {
+    if (state == null) {
+      return makeWidget(Colors.grey,  greyStyle,  greyStyle);
+    } else if (state) {
+      return makeWidget(Colors.green, blackStyle, greenStyle);
+    } else {
+      return makeWidget(Colors.red,   redStyle,   blackStyle);
+    }
+  }
 
   AnimationController _controller;
-  List<List<bool>> _grid;
+  List<List<bool>> _stateGrid;
+  List<List<Widget>> _widgetGrid;
 
   MyHomePageState() {
-    _grid = List<List<bool>>.generate(numCols, (i) => List<bool>.filled(numRows, null));
+    _stateGrid = List<List<bool>>.generate(numCols, (i) => List<bool>.filled(numRows, null));
+    final Widget empty = cellForState(null);
+    _widgetGrid = List<List<Widget>>.generate(numCols, (i) => List<Widget>.filled(numRows, empty));
   }
 
   @override
@@ -71,8 +84,9 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
   void flipOne() {
     int row = rng.nextInt(numRows);
     int col = rng.nextInt(numCols);
-    _grid[col][row] ??= rng.nextBool();
-    _grid[col][row] = !_grid[col][row];
+    _stateGrid[col][row] ??= rng.nextBool();
+    _stateGrid[col][row] = !_stateGrid[col][row];
+    _widgetGrid[col][row] = cellForState(_stateGrid[col][row]);
   }
 
   @override
@@ -84,13 +98,10 @@ class MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMi
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            for (var col in _grid)
+            for (var col in _widgetGrid)
               Column(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  for (var isGood in col)
-                    isGood == null ? noWidget : (isGood ? goodWidget : badWidget),
-                ],
+                children: col,
               ),
           ],
         );
